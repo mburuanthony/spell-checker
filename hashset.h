@@ -1,6 +1,8 @@
 #ifndef HASHSET_H
 #define HASHSET_H
 
+#define BINS 101
+
 typedef struct node
 {
     struct node *next;

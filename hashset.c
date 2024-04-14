@@ -1,13 +1,9 @@
-#include "hashset.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-#define BINS 101
-
-typedef struct node node;
+#include "hashset.h"
 
 hashset set_init()
 {
@@ -18,21 +14,21 @@ hashset set_init()
 }
 
 static int hash(char *key, int bins)
-{ // key: "abcd" = {97, 98, 99, 100, 0}
+{
   unsigned hashval = 0;
   for (int i = 0; i < (int)strlen(key); i++)
-    hashval = 31 * hashval + tolower(key[i]); // 97* 31^3 + 98 * 31^2 + 99 * 31 + 100
-  return hashval % bins;                      // return an index from 0..bins - 1
+    hashval = 31 * hashval + tolower(key[i]);
+  return hashval % bins;
 }
 
 static void rehash(hashset *);
 
 int insert(hashset *h, char *val)
 {
-  if (search(*h, val)) // I found the value
-    return 0;          // duplicate
+  if (search(*h, val))
+    return 0;
   int index = hash(val, h->bins);
-  if (h->size >= h->bins) // load factor >= 100%
+  if (h->size >= h->bins)
     rehash(h);
   node *new_element = (node *)malloc(sizeof(node));
   new_element->next = h->table[index];
@@ -51,8 +47,8 @@ void print_all(hashset h)
 
 int eliminate(hashset *h, char *val)
 {
-  if (!search(*h, val)) // I didn't find the value
-    return 0;           // failed to remove
+  if (!search(*h, val))
+    return 0;
   int index = hash(val, h->bins);
   node *prev = NULL, *it;
   for (it = h->table[index]; it->next; it = it->next)
@@ -60,13 +56,13 @@ int eliminate(hashset *h, char *val)
       break;
     else
       prev = it;
-  if (prev) // removed node isn't the head of the linked list!
+  if (prev)
     prev->next = it->next;
   else
     h->table[index] = it->next;
-  free(it); // de-allocate the removed node!
+  free(it);
   h->size--;
-  return 1; // successful removal!
+  return 1;
 }
 
 static int next_prime(int min)
@@ -76,8 +72,8 @@ static int next_prime(int min)
     int prime = 1;
     for (int div = 2; div <= sqrt(min); div++)
       if (min % div == 0)
-      {            // divisible by div
-        prime = 0; // not prime
+      {
+        prime = 0;
         break;
       }
     if (prime)

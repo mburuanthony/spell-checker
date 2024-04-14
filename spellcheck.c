@@ -1,8 +1,9 @@
-#include "spellcheck.h"
-#include "hashset.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "spellcheck.h"
+#include "hashset.h"
 
 void _suggest_replacement(hashset *dictionary, const char *misspelled_word, int line_number, int column_number)
 {
@@ -69,61 +70,69 @@ void _suggest_erase(hashset *dictionary, const char *misspelled_word, int line_n
     }
 }
 
-void spell_check(FILE *input, hashset *dictionary, int suggest_replacement, int suggest_swap, int suggest_erase)
+void spell_check(const char *input_text, hashset *dictionary, int suggest_replacement, int suggest_swap, int suggest_erase)
 {
-    char line[MAX_LINE_LEN];
     int line_number = 0;
+    const char *ptr = input_text;
 
-    while (fgets(line, MAX_LINE_LEN, input) != NULL)
+    while (*ptr != '\0')
     {
-        line_number++;
+        int column_number = 1;
 
-        char *token = strtok(line, " \t\n");
-
-        int column_number = 0;
-        while (token != NULL)
+        while (*ptr != '\n' && *ptr != '\0')
         {
-            column_number += strlen(token) + 1;
-
-            // Remove punctuation
-            char *cleaned_word = malloc(MAX_WORD_LEN * sizeof(char));
-            int cleaned_index = 0;
-            for (int i = 0; i < strlen(token); i++)
+            while (isspace(*ptr))
             {
-                if (isalpha(token[i]))
-                {
-                    cleaned_word[cleaned_index++] = tolower(token[i]);
-                }
+                column_number++;
+                ptr++;
             }
-            cleaned_word[cleaned_index] = '\0';
+
+            const char *start = ptr;
+            while (isalpha(*ptr))
+            {
+                ptr++;
+            }
+            const char *end = ptr;
+
+            char *cleaned_word = malloc((end - start + 1) * sizeof(char));
+            if (cleaned_word == NULL)
+            {
+                printf("Memory allocation failed\n");
+                return;
+            }
+            strncpy(cleaned_word, start, end - start);
+            cleaned_word[end - start] = '\0';
+
+            for (char *ch = cleaned_word; *ch != '\0'; ch++)
+            {
+                *ch = tolower(*ch);
+            }
 
             if (!search(*dictionary, cleaned_word))
             {
-                // Handle misspelled word
-                char suggestions[SUGGEST_BUFFER_SIZE] = "";
-
-                // Suggest replacements if enabled
                 if (suggest_replacement)
                 {
                     _suggest_replacement(dictionary, cleaned_word, line_number, column_number);
                 }
-
-                // Suggest swaps if enabled
                 if (suggest_swap)
                 {
                     _suggest_swap(dictionary, cleaned_word, line_number, column_number);
                 }
-
-                // Suggest erasures if enabled
                 if (suggest_erase)
                 {
                     _suggest_erase(dictionary, cleaned_word, line_number, column_number);
                 }
             }
 
-            free(cleaned_word);
+            column_number += end - start;
 
-            token = strtok(NULL, " \t\n");
+            free(cleaned_word);
+        }
+
+        if (*ptr != '\0')
+        {
+            line_number++;
+            ptr++;
         }
     }
 }
